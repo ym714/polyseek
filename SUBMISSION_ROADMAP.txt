@@ -1,0 +1,110 @@
+Roadmap: Expanding Capabilities and Quality
+
+Phase 1: Multi-Platform Support (Months 1-2)
+Goal: Support prediction markets beyond Polymarket
+
+1. Kalshi Full Integration
+   - Complete Kalshi API integration (currently partial)
+   - Support for Kalshi-specific market types and resolution rules
+   - Expected impact: Access to regulated US prediction markets
+
+2. Additional Platform Support
+   - Augur integration (decentralized prediction markets)
+   - Manifold Markets integration (community-driven markets)
+   - Custom market platform support via plugin architecture
+   - Expected impact: Analyze markets across multiple platforms
+
+3. Platform-Agnostic Architecture
+   - Abstract market data interface
+   - Unified resolution rule parser
+   - Platform detection and routing
+   - Expected impact: Easy addition of new platforms
+
+Phase 2: Expanded Signal Sources (Months 2-3)
+Goal: Increase reference sources for more comprehensive analysis
+
+1. Academic & Research Sources
+   - Academic paper search (arXiv, Google Scholar)
+   - Research database integration
+   - Expert opinion aggregation
+   - Expected impact: Higher quality, evidence-based analysis
+
+2. Financial Data Sources
+   - Stock market data (for correlated markets)
+   - Economic indicators (GDP, inflation, etc.)
+   - Cryptocurrency market data
+   - Expected impact: Better context for financial/political markets
+
+3. Social Media Expansion
+   - Reddit integration (community discussions)
+   - Discord/Telegram channel monitoring
+   - YouTube video transcripts analysis
+   - Expected impact: Broader sentiment capture
+
+4. Real-Time Data Streams
+   - Live news feeds
+   - Real-time social media monitoring
+   - Event tracking APIs
+   - Expected impact: More timely and relevant signals
+
+Phase 3: Enhanced Analysis Quality (Months 3-4)
+Goal: Improve analysis depth and accuracy
+
+1. Advanced Reasoning
+   - Multi-agent collaboration (specialist agents for different aspects)
+   - Chain-of-thought reasoning improvements
+   - Causal inference modeling
+   - Expected impact: More accurate predictions and better reasoning
+
+2. Historical Pattern Recognition
+   - Learn from past market outcomes
+   - Identify similar historical markets
+   - Pattern-based confidence adjustment
+   - Expected impact: Better calibration of confidence scores
+
+3. Source Quality Scoring
+   - Credibility assessment for each source
+   - Fact-checking integration
+   - Bias detection and correction
+   - Expected impact: More reliable source weighting
+
+4. Uncertainty Quantification
+   - Probabilistic reasoning improvements
+   - Confidence interval estimation
+   - Risk factor analysis
+   - Expected impact: Better uncertainty communication
+
+Phase 4: Closed Market Analysis (Months 4-6)
+Goal: Analyze resolved/closed markets for learning and validation
+
+1. Historical Market Database
+   - Build database of resolved markets
+   - Store market outcomes and analysis results
+   - Track prediction accuracy over time
+   - Expected impact: Enable learning and validation
+
+2. Post-Mortem Analysis
+   - Analyze why predictions were correct/incorrect
+   - Identify key factors that drove outcomes
+   - Learn from prediction errors
+   - Expected impact: Continuous improvement
+
+3. Market Comparison Engine
+   - Compare similar markets (open vs. closed)
+   - Identify patterns in market behavior
+   - Learn from market resolution patterns
+   - Expected impact: Better pattern recognition
+
+4. Validation & Calibration
+   - Validate analysis quality on closed markets
+   - Calibrate confidence scores based on historical accuracy
+   - Improve model parameters based on outcomes
+   - Expected impact: Better calibrated predictions
+
+Success Metrics:
+- Platform Coverage: Support 5+ prediction market platforms
+- Source Diversity: Average 20+ sources per analysis
+- Analysis Quality: Track accuracy on closed markets, target >60% correct verdicts
+- Closed Market Analysis: Database of 1000+ resolved markets for learning
+
+Current Status: MVP complete with Polymarket/Kalshi support. Roadmap focuses on expanding platform support, increasing signal sources, improving analysis quality, and enabling closed market analysis for continuous learning.

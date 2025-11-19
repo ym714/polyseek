@@ -1,0 +1,40 @@
+Roadmap: Expanding Capabilities and Quality
+
+Phase 1: Multi-Platform Support (Months 1-2)
+Goal: Support prediction markets beyond Polymarket
+
+1. Kalshi Full Integration: Complete API integration for regulated US markets
+2. Additional Platforms: Augur, Manifold Markets, custom platform support
+3. Platform-Agnostic Architecture: Abstract interface for easy platform addition
+
+Phase 2: Expanded Signal Sources (Months 2-3)
+Goal: Increase reference sources for comprehensive analysis
+
+1. Academic & Research: Academic papers, research databases, expert opinions
+2. Financial Data: Stock markets, economic indicators, crypto markets
+3. Social Media Expansion: Reddit, Discord, Telegram, YouTube transcripts
+4. Real-Time Streams: Live news feeds, real-time social monitoring
+
+Phase 3: Enhanced Analysis Quality (Months 3-4)
+Goal: Improve analysis depth and accuracy
+
+1. Advanced Reasoning: Multi-agent collaboration, chain-of-thought improvements
+2. Historical Pattern Recognition: Learn from past market outcomes
+3. Source Quality Scoring: Credibility assessment, fact-checking, bias detection
+4. Uncertainty Quantification: Probabilistic reasoning, confidence intervals
+
+Phase 4: Closed Market Analysis (Months 4-6)
+Goal: Analyze resolved markets for learning and validation
+
+1. Historical Market Database: Store resolved markets and outcomes
+2. Post-Mortem Analysis: Learn from correct/incorrect predictions
+3. Market Comparison Engine: Compare similar markets, identify patterns
+4. Validation & Calibration: Improve model based on historical accuracy
+
+Success Metrics:
+- Platform Coverage: 5+ prediction market platforms
+- Source Diversity: 20+ sources per analysis
+- Analysis Quality: >60% correct verdicts on closed markets
+- Closed Market Database: 1000+ resolved markets for learning
+
+Current Status: MVP complete. Roadmap expands platform support, increases signal sources, improves analysis quality, and enables closed market analysis for continuous learning.
