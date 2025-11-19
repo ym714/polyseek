@@ -1,5 +1,5 @@
 #!/bin/bash
-# Polyseek実行スクリプト
+# Polyseek execution script
 
 cd "$(dirname "$0")"
 export PYTHONPATH="src:$PYTHONPATH"

@@ -1,140 +1,41 @@
 # Practical Expansion Options
 
-## Current Status
+## High Priority Expansions
 
-✅ **Implemented:**
-- News API: Working (free plan: 100 requests/day)
-- X/Twitter API: Implemented (free plan is limited)
-- RSS integration: Implemented (may need SSL certificate adjustments)
-- Market data: Polymarket API (public, free)
-- Comment analysis: Scraping (implemented)
-- Deep mode: 4-step analysis process (implemented)
-
-## Practical Expansion Options (Free & Easy to Implement)
-
-### 1. Enhanced Comment Analysis ⭐⭐⭐⭐⭐ (Highly Recommended)
-
-**Improvements:**
-- Language detection and translation (multi-language comment support)
-- Improved sentiment analysis (more accurate detection)
+### 1. Enhanced Comment Analysis ⭐⭐⭐⭐⭐
+- Language detection and translation
+- Improved sentiment analysis
 - Spam/toxicity filtering
-- Keyword extraction
 
-**Required Libraries:**
-```bash
-pip install langdetect deep-translator
-```
+**Setup**: `pip install langdetect deep-translator`
 
-**Benefits:**
-- ✅ Completely free
-- ✅ Significantly improves analysis quality
-- ✅ Supports multi-language markets
-- ✅ Relatively easy to implement
-
-### 2. Caching Layer ⭐⭐⭐⭐⭐ (Performance Improvement)
-
-**Improvements:**
-- Market data caching (faster re-analysis of same URLs)
+### 2. Caching Layer ⭐⭐⭐⭐⭐
+- Market data caching
 - News search result caching
-- Reduced API calls
+- Reduced API costs
 
-**Required Libraries:**
-```bash
-pip install cachetools
-```
+**Setup**: `pip install cachetools`
 
-**Benefits:**
-- ✅ Completely free
-- ✅ Significantly reduces response time
-- ✅ Reduces API costs
-- ✅ Easy to implement
+### 3. Reddit Integration ⭐⭐⭐⭐
+- Community sentiment analysis
+- Free API (commercial use allowed)
 
-### 3. Reddit Integration ⭐⭐⭐⭐ (Additional Signal Source)
+**Setup**: `pip install praw` + set `REDDIT_CLIENT_ID` and `REDDIT_CLIENT_SECRET`
 
-**Improvements:**
-- Reddit API integration for community sentiment
-- Extract relevant threads and comments
-- Community discussion analysis
+## Medium Priority
 
-**Required Libraries:**
-```bash
-pip install praw
-```
-
-**Benefits:**
-- ✅ Free API (commercial use allowed)
-- ✅ Additional signal source
-- ✅ Community sentiment capture
-
-### 4. Metrics & Logging ⭐⭐⭐ (Operational Improvement)
-
-**Improvements:**
-- Processing time measurement
-- API call count tracking
-- Error rate monitoring
+### 4. Metrics & Logging ⭐⭐⭐
+- Processing time tracking
+- API call monitoring
 - LLM token usage tracking
 
-**Benefits:**
-- ✅ Completely free
-- ✅ Easier operations and debugging
-- ✅ Enables performance optimization
-
-### 5. Enhanced Error Handling ⭐⭐⭐ (Reliability Improvement)
-
-**Improvements:**
-- Automatic retry (exponential backoff)
+### 5. Enhanced Error Handling ⭐⭐⭐
+- Automatic retry with exponential backoff
+- Circuit breakers
 - Fallback mechanisms
-- User-friendly error messages
 
-**Benefits:**
-- ✅ Completely free
-- ✅ Improved reliability
-- ✅ Better user experience
+## Implementation Order
 
-## Recommended Implementation Order
-
-### Phase 1: Immediate Value (1-2 days)
-
-1. **Caching Layer** (Easiest & Most Effective)
-   - Implementation time: 1-2 hours
-   - Effect: Immediate performance improvement
-
-2. **Enhanced Comment Analysis** (Analysis Quality Improvement)
-   - Implementation time: 2-4 hours
-   - Effect: Multi-language support and improved analysis accuracy
-
-### Phase 2: Functionality Improvements (1 week)
-
-3. **Reddit Integration** (Additional Signal Source)
-   - Implementation time: 2-4 hours
-   - Effect: Additional community sentiment source
-
-4. **Metrics & Logging** (Operational Improvement)
-   - Implementation time: Half day
-   - Effect: Easier operations
-
-### Phase 3: Reliability Improvements (1 week)
-
-5. **Enhanced Error Handling** (Reliability Improvement)
-   - Implementation time: Half day
-   - Effect: Improved reliability
-
-## Conclusion
-
-Even without Reddit/X, the following expansions can significantly improve functionality:
-
-1. ✅ **Caching Layer** (Performance improvement)
-2. ✅ **Enhanced Comment Analysis** (Analysis quality improvement)
-3. ✅ **Reddit Integration** (Additional signal source)
-
-All of these can be implemented for free, and combined with News API, provide powerful analysis capabilities even without Reddit/X.
-
-## Next Steps
-
-Choose which expansion to start with:
-
-1. **Caching Layer** (Easiest, immediate effect)
-2. **Enhanced Comment Analysis** (Analysis quality improvement)
-3. **Reddit Integration** (Additional signal source)
-
-All can be implemented!
+1. Caching Layer (1-2 hours, immediate performance gain)
+2. Enhanced Comment Analysis (2-4 hours, quality improvement)
+3. Reddit Integration (2-4 hours, additional signal source)

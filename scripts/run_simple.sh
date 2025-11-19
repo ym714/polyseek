@@ -1,18 +1,18 @@
 #!/bin/bash
-# シンプルな実行コマンド
+# Simple execution script
 
 export GOOGLE_API_KEY="AIzaSyCRzo5VuNWsV6MBrkz6B0-Pebr-tKIPJS8"
 export NEWS_API_KEY="95dd935d45774d9fbfc292e4fe488746"
 export LITELLM_MODEL_ID="gemini/gemini-2.0-flash-001"
 export PYTHONPATH="src:$PYTHONPATH"
 
-cd "$(dirname "$0")"
+cd "$(dirname "$0")/.."
 
-# 引数チェック
+# Argument check
 if [ $# -eq 0 ]; then
-    echo "使用方法: $0 <マーケットURL> [depth] [perspective]"
+    echo "Usage: $0 <market-url> [depth] [perspective]"
     echo ""
-    echo "例:"
+    echo "Examples:"
     echo "  $0 'https://polymarket.com/event/your-market-slug'"
     echo "  $0 'https://polymarket.com/event/your-market-slug' quick neutral"
     echo "  $0 'https://polymarket.com/event/your-market-slug' deep devils_advocate"

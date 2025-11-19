@@ -1,25 +1,25 @@
 #!/bin/bash
-# Polyseek実行スクリプト
+# Polyseek execution script
 
-# APIキーの設定
+# API key configuration
 export GOOGLE_API_KEY="AIzaSyCRzo5VuNWsV6MBrkz6B0-Pebr-tKIPJS8"
 export NEWS_API_KEY="95dd935d45774d9fbfc292e4fe488746"
 export LITELLM_MODEL_ID="gemini/gemini-2.0-flash-001"
 
-# パスの設定
+# Path configuration
 export PYTHONPATH="src:$PYTHONPATH"
 
-# 引数チェック
+# Argument check
 if [ $# -eq 0 ]; then
-    echo "使用方法: $0 <PolymarketマーケットURL> [depth] [perspective]"
+    echo "Usage: $0 <Polymarket-market-URL> [depth] [perspective]"
     echo ""
-    echo "例:"
+    echo "Examples:"
     echo "  $0 'https://polymarket.com/event/nvda-quarterly-earnings-nongaap-eps-11-19-2025-1pt25'"
     echo "  $0 'https://polymarket.com/event/...' quick neutral"
     echo "  $0 'https://polymarket.com/event/...' deep devils_advocate"
     echo ""
-    echo "depth: quick (約30秒) または deep (約120秒) - デフォルト: quick"
-    echo "perspective: neutral または devils_advocate - デフォルト: neutral"
+    echo "depth: quick (~30s) or deep (~120s) - default: quick"
+    echo "perspective: neutral or devils_advocate - default: neutral"
     exit 1
 fi
 
@@ -39,7 +39,7 @@ from sentient_agent_framework import Session, Query, ResponseHandler
 import asyncio
 import json
 
-# カスタム設定を作成
+# Create custom settings
 settings = Settings(
     apis=APISettings(news_api_key=os.getenv('NEWS_API_KEY')),
     llm=LLMSettings(

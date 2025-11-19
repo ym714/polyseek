@@ -1,21 +1,21 @@
 #!/bin/bash
-# Polyseek CLI ラッパースクリプト
+# Polyseek CLI wrapper script
 
-cd "$(dirname "$0")"
+cd "$(dirname "$0")/.."
 export PYTHONPATH="src:$PYTHONPATH"
 
-# 環境変数の設定（必要に応じて変更）
+# Environment variable configuration (modify as needed)
 export GOOGLE_API_KEY="${GOOGLE_API_KEY:-AIzaSyCRzo5VuNWsV6MBrkz6B0-Pebr-tKIPJS8}"
 export NEWS_API_KEY="${NEWS_API_KEY:-95dd935d45774d9fbfc292e4fe488746}"
 export LITELLM_MODEL_ID="${LITELLM_MODEL_ID:-gemini/gemini-2.0-flash-001}"
 
-# オフラインモードのチェック
+# Check for offline mode
 if [ "$1" = "--offline" ]; then
     export POLYSEEK_OFFLINE=1
     shift
 fi
 
-# マーケットURLのチェック
+# Check for market URL
 if [ -z "$1" ]; then
     echo "Usage: $0 [--offline] <market_url> [--depth quick|deep] [--perspective neutral|devils_advocate]"
     echo ""
