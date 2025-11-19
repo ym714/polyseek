@@ -12,15 +12,22 @@ It fetches market metadata, scrapes on-page context, pulls external signals (new
 
 ## Project Layout
 ```
-src/polyseek_sentient/
-  main.py               # Sentient agent entry point
-  config.py             # settings + env loading
-  fetch_market.py       # official API integration helpers
-  scrape_context.py     # comment/rules extraction utilities
-  signals_client.py     # external signal aggregation
-  analysis_agent.py     # LLM orchestration
-  report_formatter.py   # schema validation + Markdown builder
-  tests/test_report_formatter.py
+polyseek_sentient/
+├── README.md           # This file
+├── requirements.txt    # Python dependencies
+├── src/
+│   └── polyseek_sentient/
+│       ├── main.py               # Sentient agent entry point
+│       ├── config.py             # settings + env loading
+│       ├── fetch_market.py       # official API integration helpers
+│       ├── scrape_context.py     # comment/rules extraction utilities
+│       ├── signals_client.py     # external signal aggregation
+│       ├── analysis_agent.py     # LLM orchestration
+│       ├── report_formatter.py   # schema validation + Markdown builder
+│       └── tests/
+│           └── test_report_formatter.py
+├── docs/               # Documentation
+└── scripts/            # Utility scripts
 ```
 
 ## Quickstart
@@ -30,7 +37,17 @@ src/polyseek_sentient/
    ```bash
    python -m polyseek_sentient.main "https://polymarket.com/event/..."
    ```
+   Or use the convenience script:
+   ```bash
+   ./scripts/run_simple.sh "https://polymarket.com/event/..."
+   ```
 4. When embedding inside Sentient Agent Framework, instantiate `PolyseekSentientAgent` and wire it into your server/orchestrator.
+
+## Documentation
+See `docs/` directory for detailed documentation:
+- `QUICKSTART.md` - Quick start guide
+- `HOW_IT_WORKS.md` - Architecture and implementation details
+- `DEEP_MODE_GUIDE.md` - Deep mode usage guide
 
 ## Tests
 ```

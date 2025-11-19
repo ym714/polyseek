@@ -51,3 +51,4 @@ Thumbs.db
 # Optional: Submission files (uncomment if you don't want to commit these)
 # SUBMISSION_*.txt
 
+.env
