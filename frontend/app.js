@@ -2,12 +2,13 @@
 
 // Configuration
 const CONFIG = {
-    // Use relative URL for local development, absolute URL for production
-    API_BASE_URL: window.location.protocol === 'file:' 
-        ? 'http://localhost:8000/api' 
-        : window.location.origin + '/api',
-    MOCK_MODE: false, // Set to false when backend is ready
+    // Railway production backend
+    API_BASE_URL: window.location.protocol === 'file:'
+        ? 'http://localhost:8000/api'
+        : 'https://polyseek-sentient-agent-production.up.railway.app/api',
+    MOCK_MODE: false,
 };
+
 
 // State Management
 const state = {
@@ -109,7 +110,7 @@ async function analyzeMarket(marketUrl, depth, perspective) {
                     // First, get the response text
                     const responseText = await response.text();
                     console.error('API error response text:', responseText);
-                    
+
                     // Try to parse as JSON
                     let errorData;
                     try {
@@ -120,7 +121,7 @@ async function analyzeMarket(marketUrl, depth, perspective) {
                         errorMessage = responseText || `API error: ${response.status} ${response.statusText}`;
                         throw new Error(errorMessage);
                     }
-                    
+
                     // Extract error message from JSON
                     if (errorData.detail) {
                         errorMessage = errorData.detail;
@@ -333,7 +334,7 @@ function showError(message) {
         </div>
     `;
     document.body.appendChild(errorDiv);
-    
+
     // Auto-remove after 10 seconds
     setTimeout(() => {
         if (errorDiv.parentElement) {
