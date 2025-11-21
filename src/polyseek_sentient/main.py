@@ -7,7 +7,11 @@ import asyncio
 import json
 import uuid
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, List
+
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 
 try:  # pragma: no cover - optional dependency
     from sentient_agent_framework import AbstractAgent, Query, ResponseHandler, Session
@@ -163,6 +167,102 @@ def main():
     parser.add_argument("--perspective", default="neutral", choices=("neutral", "devils_advocate"))
     args = parser.parse_args()
     asyncio.run(_run_cli(args.market_url, args.depth, args.perspective))
+
+
+# ==========================================
+# FastAPI Application
+# ==========================================
+
+app = FastAPI(title="Polyseek Sentient API")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # For local development
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+class AnalyzeRequest(BaseModel):
+    market_url: str
+    depth: str = "quick"
+    perspective: str = "neutral"
+
+
+@app.get("/api/health")
+async def health_check():
+    return {"status": "ok"}
+
+
+@app.get("/api/trending")
+async def get_trending():
+    """Return mock trending markets for the frontend."""
+    return [
+        {
+            "id": 1,
+            "title": "Will Bitcoin reach $100,000 by end of 2025?",
+            "price": "67¢",
+            "volume": "$2.4M volume",
+            "url": "https://polymarket.com/event/bitcoin-100k-2025",
+        },
+        {
+            "id": 2,
+            "title": "Will AI surpass human performance in coding by 2026?",
+            "price": "42¢",
+            "volume": "$1.8M volume",
+            "url": "https://polymarket.com/event/ai-coding-2026",
+        },
+        {
+            "id": 3,
+            "title": "Will there be a recession in 2025?",
+            "price": "31¢",
+            "volume": "$3.2M volume",
+            "url": "https://polymarket.com/event/recession-2025",
+        },
+    ]
+
+
+@app.post("/api/analyze")
+async def analyze_market(request: AnalyzeRequest):
+    try:
+        settings = load_settings()
+        
+        # 1. Fetch Market Data
+        # Note: In a real app, we might want to cache this or handle errors more gracefully
+        market = await fetch_market_data(request.market_url, settings)
+        
+        # 2. Fetch Context
+        context = await fetch_market_context(request.market_url, settings)
+        
+        # 3. Gather Signals
+        signals = await gather_signals(market, settings)
+        
+        # 4. Run Analysis
+        analysis_payload = await run_analysis(
+            AnalysisRequest(
+                market=market,
+                context=context,
+                signals=signals,
+                depth=request.depth,
+                perspective=request.perspective,
+            ),
+            settings,
+        )
+        
+        # 5. Format Response
+        model, markdown = format_response(analysis_payload)
+        
+        # Construct response matching frontend expectation
+        return {
+            "markdown": markdown,
+            "json": model.model_dump()
+        }
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 if __name__ == "__main__":
