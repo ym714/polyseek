@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Polyseek</title>
     <meta name="description" content="AI-powered deep research for prediction markets. Supports Polymarket and Kalshi.">
-    
+
     <!-- Favicon with white circle background (Google style) -->
     <!-- SVG favicon with white circle background (preferred) -->
     <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg">
@@ -318,6 +318,26 @@
 
                     <!-- Content -->
                     <div class="space-y-6">
+                        <!-- Polymarket Chart Embed -->
+                        <div id="chartContainer"
+                            class="hidden bg-neutral-900/50 border border-white/10 rounded-2xl p-6 overflow-hidden">
+                            <h3 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <line x1="12" y1="20" x2="12" y2="10"></line>
+                                    <line x1="18" y1="20" x2="18" y2="4"></line>
+                                    <line x1="6" y1="20" x2="6" y2="16"></line>
+                                </svg>
+                                Market Chart
+                            </h3>
+                            <div class="relative w-full" style="height: 500px;">
+                                <iframe id="polymarketChart" class="w-full h-full rounded-lg" frameborder="0"
+                                    scrolling="no" style="background: transparent;">
+                                </iframe>
+                            </div>
+                        </div>
+
                         <!-- Markdown Content -->
                         <div class="bg-neutral-900/50 border border-white/10 rounded-2xl p-8 prose prose-invert max-w-none"
                             id="markdownContent">

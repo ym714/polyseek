@@ -269,6 +269,14 @@ function renderTrendingMarkets(markets) {
 function displayResults(data) {
     state.currentAnalysis = data;
 
+    // Extract market URL from the analysis data
+    const marketUrl = data.json?.market?.url || elements.marketUrl.value;
+
+    // Embed Polymarket chart if we have a valid URL
+    if (marketUrl && marketUrl.includes('polymarket.com')) {
+        embedPolymarketChart(marketUrl);
+    }
+
     // Render Markdown
     if (data.markdown) {
         elements.markdownContent.innerHTML = marked.parse(data.markdown);
@@ -287,6 +295,38 @@ function displayResults(data) {
         elements.resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 100);
 }
+
+function embedPolymarketChart(marketUrl) {
+    try {
+        // Extract the market slug from the URL
+        // Example: https://polymarket.com/event/presidential-election-winner-2028?tid=xxx
+        // We want: presidential-election-winner-2028
+        const urlParts = marketUrl.split('/');
+        const eventIndex = urlParts.indexOf('event');
+
+        if (eventIndex !== -1 && urlParts[eventIndex + 1]) {
+            let marketSlug = urlParts[eventIndex + 1];
+            // Remove query parameters
+            marketSlug = marketSlug.split('?')[0];
+
+            // Construct the embed URL
+            const embedUrl = `https://polymarket.com/event/${marketSlug}/embed`;
+
+            // Set the iframe source
+            const chartIframe = document.getElementById('polymarketChart');
+            const chartContainer = document.getElementById('chartContainer');
+
+            if (chartIframe && chartContainer) {
+                chartIframe.src = embedUrl;
+                chartContainer.classList.remove('hidden');
+                console.log('Embedded Polymarket chart:', embedUrl);
+            }
+        }
+    } catch (error) {
+        console.error('Failed to embed Polymarket chart:', error);
+    }
+}
+
 
 function showResults() {
     elements.resultsSection.classList.remove('hidden');
