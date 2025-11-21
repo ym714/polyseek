@@ -53,21 +53,40 @@ async def _run_quick_analysis(
     system_prompt = (
         "You are Polyseek Sentient, a rigorous prediction market analyst. "
         "You must analyze provided market data, comments, and external signals. "
-        "Follow instructions precisely, cite source IDs, and output valid JSON."
+        "Follow instructions precisely, cite source IDs, and output valid JSON.\n\n"
+        "CRITICAL: You MUST respond with ONLY a valid JSON object. "
+        "Do not include any text before or after the JSON. "
+        "Do not wrap the JSON in markdown code blocks."
     )
     user_prompt = _build_user_prompt(request)
-    response = await acompletion(
-        model=settings.llm.model,
-        api_key=settings.llm.api_key,
-        messages=[
+    
+    # Detect if using Gemini model
+    is_gemini = "gemini" in settings.llm.model.lower()
+    
+    # Build completion parameters
+    completion_params = {
+        "model": settings.llm.model,
+        "api_key": settings.llm.api_key,
+        "messages": [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
         ],
-        temperature=settings.llm.temperature,
-        max_tokens=settings.llm.max_tokens,
-        response_format={"type": "json_object"},
-    )
-    content = response["choices"][0]["message"]["content"]
+        "temperature": settings.llm.temperature,
+        "max_tokens": settings.llm.max_tokens,  # Use full token limit
+    }
+    
+    # Only add response_format for OpenAI models
+    if not is_gemini:
+        completion_params["response_format"] = {"type": "json_object"}
+    
+    try:
+        response = await acompletion(**completion_params)
+        content = response["choices"][0]["message"]["content"]
+    except Exception as e:
+        print(f"[ERROR] LLM API call failed: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return _create_error_response(f"LLM API error: {str(e)}")
     
     # Try direct JSON parse first (most common case)
     import json
@@ -87,11 +106,128 @@ async def _run_quick_analysis(
         if isinstance(direct_parse, dict) and all(field in direct_parse for field in ["verdict", "confidence_pct", "summary", "key_drivers", "sources"]):
             result = direct_parse
         else:
-            # Missing required fields, use fallback parser
+            # Missing required fields, log and use fallback parser
+            print(f"[WARNING] LLM response missing required fields. Got: {list(direct_parse.keys()) if isinstance(direct_parse, dict) else type(direct_parse)}")
+            print(f"[DEBUG] Raw response (first 500 chars): {content[:500]}")
             result = _parse_response_json(content)
     except (json.JSONDecodeError, ValueError) as e:
-        # JSON parse failed, use fallback parser
+        # JSON parse failed, log and use fallback parser
+        print(f"[ERROR] JSON parse failed: {str(e)}")
+        print(f"[DEBUG] Raw response (first 500 chars): {content[:500]}")
         result = _parse_response_json(content)
+    
+    # Ensure result is a dict
+    if not isinstance(result, dict):
+        result = {}
+    
+    # Validate that result has required fields
+    required_fields = ["verdict", "confidence_pct", "summary", "key_drivers", "sources"]
+    missing_fields = [field for field in required_fields if field not in result]
+    if missing_fields:
+        print(f"[ERROR] Missing required fields after parsing: {missing_fields}")
+        print(f"[DEBUG] Parsed result keys: {list(result.keys())}")
+        # Return fallback structure
+        return _create_error_response(f"LLM response missing fields: {missing_fields}")
+    
+    result["metadata"] = result.get("metadata", {})
+    result["metadata"]["mode"] = "quick"
+    return result
+
+
+async def _run_deep_analysis(
+    request: AnalysisRequest,
+    settings: Settings,
+) -> Dict:
+    """Deep mode: Planner → Critic → Follow-up → Final (4-step analysis)."""
+    system_prompt = (
+        "You are Polyseek Sentient, a rigorous prediction market analyst. "
+        "You must analyze provided market data, comments, and external signals. "
+        "Follow instructions precisely, cite source IDs, and output valid JSON.\n\n"
+        "CRITICAL: You MUST respond with ONLY a valid JSON object. "
+        "Do not include any text before or after the JSON. "
+        "Do not wrap the JSON in markdown code blocks."
+    )
+    
+    # Detect if using Gemini model
+    is_gemini = "gemini" in settings.llm.model.lower()
+    
+    # Step 1: Planner - Create analysis plan
+    planner_prompt = _build_planner_prompt(request)
+    planner_params = {
+        "model": settings.llm.model,
+        "api_key": settings.llm.api_key,
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": planner_prompt},
+        ],
+        "temperature": 0.3,
+        "max_tokens": 2048,
+    }
+    if not is_gemini:
+        planner_params["response_format"] = {"type": "json_object"}
+    
+    planner_response = await acompletion(**planner_params)
+    plan_content = planner_response["choices"][0]["message"]["content"]
+    plan = _parse_response_json(plan_content)
+    
+    # Ensure plan is a dict
+    if not isinstance(plan, dict):
+        plan = {"analysis_plan": [], "key_questions": [], "information_gaps": []}
+    
+    # Step 2: Critic - Critically evaluate the plan and identify gaps
+    critic_prompt = _build_critic_prompt(request, plan)
+    critic_params = {
+        "model": settings.llm.model,
+        "api_key": settings.llm.api_key,
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": critic_prompt},
+        ],
+        "temperature": 0.3,
+        "max_tokens": 2048,
+    }
+    if not is_gemini:
+        critic_params["response_format"] = {"type": "json_object"}
+    
+    critic_response = await acompletion(**critic_params)
+    critique_content = critic_response["choices"][0]["message"]["content"]
+    critique = _parse_response_json(critique_content)
+    
+    # Ensure critique is a dict
+    if not isinstance(critique, dict):
+        critique = {"gaps": [], "follow_up_queries": [], "biases": [], "recommendations": []}
+    
+    # Step 3: Follow-up - Gather additional data if gaps identified
+    additional_signals = list(request.signals)  # Copy original signals
+    # Note: In a full implementation, we would use follow_up_queries to search for additional information
+    # For now, we use the comprehensive signals already gathered
+    # Future enhancement: Implement targeted follow-up searches based on critique
+    
+    # Step 4: Final - Perform final analysis with all data
+    final_request = AnalysisRequest(
+        market=request.market,
+        context=request.context,
+        signals=additional_signals,
+        depth="deep",
+        perspective=request.perspective,
+    )
+    final_prompt = _build_final_prompt(final_request, plan, critique)
+    final_params = {
+        "model": settings.llm.model,
+        "api_key": settings.llm.api_key,
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": final_prompt},
+        ],
+        "temperature": settings.llm.temperature,
+        "max_tokens": settings.llm.max_tokens,  # Use full token limit
+    }
+    if not is_gemini:
+        final_params["response_format"] = {"type": "json_object"}
+    
+    final_response = await acompletion(**final_params)
+    final_content = final_response["choices"][0]["message"]["content"]
+    result = _parse_response_json(final_content)
     
     # Ensure result is a dict
     if not isinstance(result, dict):
@@ -125,84 +261,11 @@ async def _run_quick_analysis(
         }
     
     result["metadata"] = result.get("metadata", {})
-    result["metadata"]["mode"] = "quick"
-    return result
-
-
-async def _run_deep_analysis(
-    request: AnalysisRequest,
-    settings: Settings,
-) -> Dict:
-    """Deep mode: Planner → Critic → Follow-up → Final (4-step analysis)."""
-    system_prompt = (
-        "You are Polyseek Sentient, a rigorous prediction market analyst. "
-        "You must analyze provided market data, comments, and external signals. "
-        "Follow instructions precisely, cite source IDs, and output valid JSON."
-    )
-    
-    # Step 1: Planner - Create analysis plan
-    planner_prompt = _build_planner_prompt(request)
-    planner_response = await acompletion(
-        model=settings.llm.model,
-        api_key=settings.llm.api_key,
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": planner_prompt},
-        ],
-        temperature=0.3,
-        max_tokens=1024,
-        response_format={"type": "json_object"},
-    )
-    plan = _parse_response_json(planner_response["choices"][0]["message"]["content"])
-    
-    # Step 2: Critic - Critically evaluate the plan and identify gaps
-    critic_prompt = _build_critic_prompt(request, plan)
-    critic_response = await acompletion(
-        model=settings.llm.model,
-        api_key=settings.llm.api_key,
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": critic_prompt},
-        ],
-        temperature=0.3,
-        max_tokens=1024,
-        response_format={"type": "json_object"},
-    )
-    critique = _parse_response_json(critic_response["choices"][0]["message"]["content"])
-    
-    # Step 3: Follow-up - Gather additional data if gaps identified
-    additional_signals = list(request.signals)  # Copy original signals
-    # Note: In a full implementation, we would use follow_up_queries to search for additional information
-    # For now, we use the comprehensive signals already gathered
-    # Future enhancement: Implement targeted follow-up searches based on critique
-    
-    # Step 4: Final - Perform final analysis with all data
-    final_request = AnalysisRequest(
-        market=request.market,
-        context=request.context,
-        signals=additional_signals,
-        depth="deep",
-        perspective=request.perspective,
-    )
-    final_prompt = _build_final_prompt(final_request, plan, critique)
-    final_response = await acompletion(
-        model=settings.llm.model,
-        api_key=settings.llm.api_key,
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": final_prompt},
-        ],
-        temperature=settings.llm.temperature,
-        max_tokens=settings.llm.max_tokens * 2,  # Allow more tokens for deep analysis
-        response_format={"type": "json_object"},
-    )
-    result = _parse_response_json(final_response["choices"][0]["message"]["content"])
-    result["metadata"] = result.get("metadata", {})
     result["metadata"]["mode"] = "deep"
-    result["metadata"]["plan"] = plan.get("analysis_plan", [])
+    result["metadata"]["plan"] = plan.get("analysis_plan", []) if isinstance(plan, dict) else []
     result["metadata"]["critique"] = {
-        "gaps": critique.get("gaps", []),
-        "follow_up_queries": critique.get("follow_up_queries", []),
+        "gaps": critique.get("gaps", []) if isinstance(critique, dict) else [],
+        "follow_up_queries": critique.get("follow_up_queries", []) if isinstance(critique, dict) else [],
     }
     return result
 
@@ -359,17 +422,19 @@ Perform a comprehensive analysis considering:
 Respond with valid JSON containing:
 - verdict: "YES" | "NO" | "UNCERTAIN"
 - confidence_pct: number between 0-100
-- summary: comprehensive analysis summary
-- key_drivers: array of objects with "text" and "source_ids", maximum 3 items
-- uncertainty_factors: array of strings
-- next_steps: optional array of strings
+- summary: comprehensive analysis summary (5-8 sentences) describing your analysis, key findings, reasoning, and implications
+- key_drivers: array of objects with "text" (detailed explanation, 2-3 sentences each) and "source_ids", maximum 5 items for deep analysis
+- uncertainty_factors: array of strings (at least 3-5 factors)
+- next_steps: array of strings (recommended: 3-5 actionable steps)
 - sources: array of objects with "id", "title", "url", "type", "sentiment"
 
 IMPORTANT: 
 - This is a DEEP analysis - be thorough and consider all angles
+- Provide detailed explanations in key_drivers - each driver should be 2-3 sentences explaining the factor, its impact, and why it matters
+- Write a comprehensive summary (5-8 sentences) that covers your analysis methodology, key findings, reasoning, and implications
 - Cite source IDs in key_drivers
 - sources[].type must be "market", "comment", "sns", or "news"
-- Include at least one source
+- Include multiple sources (at least 3-5)
 - If evidence is insufficient, verdict MUST be UNCERTAIN
 """
 
@@ -387,67 +452,69 @@ def _build_user_prompt(request: AnalysisRequest) -> str:
         for s in request.signals
     ) or "No external signals were retrieved."
 
-    return f"""
-You must analyze a prediction market and respond with valid JSON containing EXACTLY these fields:
-- verdict: "YES" | "NO" | "UNCERTAIN" (required)
-- confidence_pct: number between 0-100 (required)
-- summary: string describing your analysis (required)
-- key_drivers: array of objects, each with "text" (string) and "source_ids" (array of strings), maximum 3 items (required)
-- uncertainty_factors: array of strings (required)
-- next_steps: optional array of strings
-- sources: array of objects, each with "id" (string), "title" (string), "url" (string), "type" ("market"|"comment"|"sns"|"news"), "sentiment" ("pro"|"con"|"neutral"), optional "timestamp" (string) (required)
+    return f"""Analyze this prediction market and return ONLY a JSON object (no markdown, no explanation).
 
-CRITICAL REQUIREMENTS:
-- You MUST return a JSON object with ALL required fields listed above
-- Do NOT return a partial response or a different structure
-- key_drivers must be an array of objects, not strings. Each object must have "text" and "source_ids" fields.
-- sources[].type must be exactly one of: "market", "comment", "sns", or "news" (not "prediction_market" or other values)
-- Include at least one source.
-- The JSON must be valid and complete
-
-Market:
-- Title: {market.title}
-- Category: {market.category}
-- Deadline UTC: {market.deadline}
-- Prices: YES={market.prices.yes} NO={market.prices.no}
-- Liquidity: {market.liquidity}
-- Volume 24h: {market.volume_24h}
-- Resolution rules: {rules}
-
-Operating mode:
-- Depth: {request.depth}
-- Perspective: {request.perspective}
-
-Platform comments:
-{comments_block}
-
-External signals:
-{signals_block}
-
-Instructions:
-1. Consider BOTH pro and con evidence. Devil's advocate mode requires at least two counter arguments.
-2. Base prior probability on current YES price; adjust via likelihood style reasoning.
-3. Cite source IDs in key_drivers using the provided IDs or synthetic ones for generated sources.
-4. Always include at least one uncertainty factor. If evidence is insufficient, verdict MUST be UNCERTAIN.
-5. Format key_drivers as: [{{"text": "...", "source_ids": ["SRC1"]}}, ...]
-6. Format sources as: [{{"id": "SRC1", "title": "...", "url": "...", "type": "market", "sentiment": "neutral"}}, ...]
-
-Example JSON structure (YOU MUST FOLLOW THIS EXACT STRUCTURE):
+REQUIRED JSON STRUCTURE:
 {{
-  "verdict": "UNCERTAIN",
-  "confidence_pct": 50.0,
-  "summary": "Your comprehensive analysis summary here",
+  "verdict": "YES" | "NO" | "UNCERTAIN",
+  "confidence_pct": <number 0-100>,
+  "summary": "<comprehensive 3-5 sentence analysis>",
   "key_drivers": [
-    {{"text": "Driver description", "source_ids": ["SRC1", "SRC2"]}}
+    {{"text": "<detailed explanation>", "source_ids": ["SRC1", "SRC2"]}}
   ],
-  "uncertainty_factors": ["Factor 1"],
-  "next_steps": ["Optional step 1"],
+  "uncertainty_factors": ["<factor 1>", "<factor 2>"],
   "sources": [
-    {{"id": "SRC1", "title": "Source title", "url": "https://...", "type": "market", "sentiment": "neutral"}}
+    {{"id": "SRC1", "title": "<title>", "url": "<url>", "type": "market|comment|sns|news", "sentiment": "pro|con|neutral"}}
   ]
 }}
 
-REMEMBER: You MUST return a complete JSON object with ALL required fields: verdict, confidence_pct, summary, key_drivers, uncertainty_factors, and sources.
+MARKET DATA:
+- Title: {market.title}
+- Category: {market.category}
+- Deadline: {market.deadline}
+- Current Prices: YES={market.prices.yes}, NO={market.prices.no}
+- Liquidity: {market.liquidity}
+- Volume 24h: {market.volume_24h}
+- Resolution Rules: {rules}
+
+PLATFORM COMMENTS:
+{comments_block}
+
+EXTERNAL SIGNALS:
+{signals_block}
+
+ANALYSIS INSTRUCTIONS:
+1. Evaluate BOTH pro and con evidence
+2. Use current YES price ({market.prices.yes}) as base probability
+3. Cite source IDs in key_drivers (use provided IDs or create synthetic ones like SRC1, SRC2)
+4. Include at least 2-3 uncertainty factors
+5. If evidence is insufficient, verdict MUST be "UNCERTAIN"
+6. Write detailed key_drivers (full sentences explaining impact)
+7. Ensure sources[].type is exactly: "market", "comment", "sns", or "news"
+8. Include at least 3 sources
+
+EXAMPLE RESPONSE FORMAT:
+{{
+  "verdict": "UNCERTAIN",
+  "confidence_pct": 45.0,
+  "summary": "Based on the available evidence, this market presents significant uncertainty. The current price of {market.prices.yes} suggests market participants are moderately bearish. However, key information gaps and conflicting signals prevent a confident prediction. The analysis considers both supporting and opposing factors.",
+  "key_drivers": [
+    {{"text": "Recent news indicates positive momentum, with multiple sources reporting favorable developments. This could push the outcome toward YES.", "source_ids": ["SRC1", "SRC2"]}},
+    {{"text": "However, historical precedent and expert commentary suggest caution. Similar situations have resolved negatively in the past.", "source_ids": ["SRC3"]}}
+  ],
+  "uncertainty_factors": [
+    "Limited reliable data available for this specific scenario",
+    "Conflicting expert opinions create ambiguity",
+    "Timeline uncertainty affects probability assessment"
+  ],
+  "sources": [
+    {{"id": "SRC1", "title": "News Article Title", "url": "https://example.com", "type": "news", "sentiment": "pro"}},
+    {{"id": "SRC2", "title": "Social Media Discussion", "url": "https://twitter.com/example", "type": "sns", "sentiment": "pro"}},
+    {{"id": "SRC3", "title": "Expert Analysis", "url": "https://example.com/analysis", "type": "news", "sentiment": "con"}}
+  ]
+}}
+
+NOW ANALYZE THE MARKET AND RETURN ONLY THE JSON OBJECT:
 """
 
 
@@ -609,6 +676,32 @@ def _parse_response_json(raw: str) -> Dict:
                 }
             ],
         }
+
+
+def _create_error_response(error_message: str) -> Dict:
+    """Create a standardized error response structure."""
+    return {
+        "verdict": "UNCERTAIN",
+        "confidence_pct": 50.0,
+        "summary": error_message,
+        "key_drivers": [
+            {
+                "text": "Analysis failed due to technical error. Please try again or contact support.",
+                "source_ids": ["SRC_ERROR"],
+            }
+        ],
+        "uncertainty_factors": ["Technical error prevented analysis"],
+        "sources": [
+            {
+                "id": "SRC_ERROR",
+                "title": "Error",
+                "url": "",
+                "type": "news",
+                "sentiment": "neutral",
+            }
+        ],
+        "metadata": {"error": True, "error_message": error_message},
+    }
 
 
 def _offline_analysis(request: AnalysisRequest) -> Dict:

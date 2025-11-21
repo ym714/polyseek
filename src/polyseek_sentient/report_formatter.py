@@ -80,7 +80,9 @@ def render_markdown(model: AnalysisModel) -> str:
         "#### Key Drivers",
     ]
     if model.key_drivers:
-        for driver in model.key_drivers[:3]:
+        # Show all drivers for deep mode, up to 5 for quick mode
+        max_drivers = 5 if model.metadata and model.metadata.get("mode") == "deep" else 3
+        for driver in model.key_drivers[:max_drivers]:
             refs = ", ".join(driver.source_ids) if driver.source_ids else "n/a"
             lines.append(f"- {driver.text} _(sources: {refs})_")
     else:
