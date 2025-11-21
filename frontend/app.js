@@ -297,15 +297,14 @@ function displayResults(data) {
 }
 
 function embedPolymarketChart(marketUrl) {
-    // Note: Polymarket doesn't allow iframe embedding due to X-Frame-Options
-    // Chart embedding is disabled for now
-    // TODO: Consider alternative approaches like screenshot API or direct link
-    console.log('Chart embedding disabled - Polymarket blocks iframe embeds');
-
-    // Hide the chart container
+    // Set direct link to Polymarket instead of iframe (which is blocked)
+    const polymarketLink = document.getElementById('polymarketLink');
     const chartContainer = document.getElementById('chartContainer');
-    if (chartContainer) {
-        chartContainer.classList.add('hidden');
+
+    if (polymarketLink && chartContainer && marketUrl) {
+        polymarketLink.href = marketUrl;
+        chartContainer.classList.remove('hidden');
+        console.log('Set Polymarket link:', marketUrl);
     }
 }
 

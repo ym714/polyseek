@@ -318,24 +318,26 @@
 
                     <!-- Content -->
                     <div class="space-y-6">
-                        <!-- Polymarket Chart Embed -->
-                        <div id="chartContainer"
-                            class="hidden bg-neutral-900/50 border border-white/10 rounded-2xl p-6 overflow-hidden">
-                            <h3 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                        <!-- Polymarket Link -->
+                        <div id="chartContainer" class="hidden">
+                            <a id="polymarketLink" href="#" target="_blank" rel="noopener noreferrer"
+                                class="flex items-center justify-center gap-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold py-4 px-6 rounded-xl transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-purple-500/50">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
                                     fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
                                     stroke-linejoin="round">
                                     <line x1="12" y1="20" x2="12" y2="10"></line>
                                     <line x1="18" y1="20" x2="18" y2="4"></line>
                                     <line x1="6" y1="20" x2="6" y2="16"></line>
                                 </svg>
-                                Market Chart
-                            </h3>
-                            <div class="relative w-full" style="height: 500px;">
-                                <iframe id="polymarketChart" class="w-full h-full rounded-lg" frameborder="0"
-                                    scrolling="no" style="background: transparent;">
-                                </iframe>
-                            </div>
+                                <span>📊 View Market Chart on Polymarket</span>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                                    <polyline points="15 3 21 3 21 9"></polyline>
+                                    <line x1="10" y1="14" x2="21" y2="3"></line>
+                                </svg>
+                            </a>
                         </div>
 
                         <!-- Markdown Content -->
