@@ -8,4 +8,5 @@ anyio>=4.4.0
 feedparser>=6.0.10
 fastapi>=0.110.0
 uvicorn>=0.29.0
+sentient-agent-framework>=0.1.0
 
