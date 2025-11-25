@@ -2,8 +2,10 @@ import sys
 import traceback
 import os
 
-# Add the project root to sys.path to ensure imports work
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Add the project root and src to sys.path to ensure imports work
+root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(root_dir)
+sys.path.append(os.path.join(root_dir, "src"))
 
 try:
     # Try importing from the legacy directory name first (as seen in file listing)
