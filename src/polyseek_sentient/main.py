@@ -361,18 +361,23 @@ class SSEResponseHandler:
         self.events = []
     
     async def emit_text_block(self, event_name: str, content: str):
-        event = f"event: {event_name}\ndata: {json.dumps({'content': content})}\n\n"
+        # Use standard 'message' event for compatibility
+        data = {"type": event_name, "content": content}
+        event = f"event: message\ndata: {json.dumps(data)}\n\n"
         self.events.append(event)
     
     async def emit_json(self, event_name: str, data: dict):
-        event = f"event: {event_name}\ndata: {json.dumps(data)}\n\n"
+        # Use standard 'message' event for compatibility
+        payload = {"type": event_name, "data": data}
+        event = f"event: message\ndata: {json.dumps(payload)}\n\n"
         self.events.append(event)
     
     def create_text_stream(self, event_name: str):
         return SSEStream(event_name, self.events)
     
     async def complete(self):
-        event = f"event: done\ndata: {json.dumps({'status': 'complete'})}\n\n"
+        data = {"type": "done", "status": "complete"}
+        event = f"event: message\ndata: {json.dumps(data)}\n\n"
         self.events.append(event)
 
 class SSEStream:
@@ -381,11 +386,13 @@ class SSEStream:
         self.events_list = events_list
     
     async def emit_chunk(self, chunk: str):
-        event = f"event: {self.name}\ndata: {json.dumps({'chunk': chunk})}\n\n"
+        data = {"type": self.name, "chunk": chunk}
+        event = f"event: message\ndata: {json.dumps(data)}\n\n"
         self.events_list.append(event)
     
     async def complete(self):
-        event = f"event: {self.name}_complete\ndata: {json.dumps({'status': 'complete'})}\n\n"
+        data = {"type": f"{self.name}_complete", "status": "complete"}
+        event = f"event: message\ndata: {json.dumps(data)}\n\n"
         self.events_list.append(event)
 
 @app.get("/assist")
@@ -410,10 +417,9 @@ async def assist_endpoint(request: dict = None, query: str = None):
     if not query_text:
         handler = SSEResponseHandler()
         async def welcome_generator():
-            await handler.emit_text_block("WELCOME", "Polyseek Agent Ready. Please send a query.")
-            await handler.complete()
-            for event in handler.events:
-                yield event
+            # Use standard 'message' event for compatibility
+            # Some clients expect 'data' only, or 'event: message'
+            yield f"event: message\ndata: {json.dumps({'content': 'Polyseek Agent Ready. Please send a query.'})}\n\n"
         return StreamingResponse(welcome_generator(), media_type="text/event-stream")
 
     async def event_generator() -> AsyncGenerator[str, None]:
