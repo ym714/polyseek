@@ -123,7 +123,7 @@ class PolyseekSentientAgent(AbstractAgent):
         from .analysis_agent import AnalysisRequest, run_analysis
         from .fetch_market import fetch_market_data
         from .scrape_context import fetch_market_context
-        from .signals_client import fetch_signals
+        from .signals_client import gather_signals
 
         payload = _parse_prompt(query.prompt)
         await response_handler.emit_text_block("RECEIVED", f"Analyzing {payload.market_url}")
