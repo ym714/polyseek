@@ -388,10 +388,34 @@ class SSEStream:
         event = f"event: {self.name}_complete\ndata: {json.dumps({'status': 'complete'})}\n\n"
         self.events_list.append(event)
 
+@app.get("/assist")
 @app.post("/assist")
-async def assist_endpoint(request: dict):
+async def assist_endpoint(request: dict = None, query: str = None):
     """MCP/SSE endpoint for Questflow compatibility."""
     
+    # Lazy import to prevent startup crashes
+    from .analysis_agent import AnalysisRequest, run_analysis
+    from .fetch_market import fetch_market_data
+    from .scrape_context import fetch_market_context
+    from .signals_client import fetch_signals
+
+    # Handle GET request (query param) or POST request (json body)
+    query_text = ""
+    if query:
+        query_text = query
+    elif request:
+        query_text = request.get("query", "")
+    
+    # If no query provided (e.g. initial connection), send a welcome event
+    if not query_text:
+        handler = SSEResponseHandler()
+        async def welcome_generator():
+            await handler.emit_text_block("WELCOME", "Polyseek Agent Ready. Please send a query.")
+            await handler.complete()
+            for event in handler.events:
+                yield event
+        return StreamingResponse(welcome_generator(), media_type="text/event-stream")
+
     async def event_generator() -> AsyncGenerator[str, None]:
         # Create SSE response handler
         handler = SSEResponseHandler()
