@@ -28,4 +28,5 @@ EXPOSE 8000
 
 # Command to run the application
 RUN chmod +x start.sh
-CMD ["./start.sh"]
+ENTRYPOINT ["./start.sh"]
+
