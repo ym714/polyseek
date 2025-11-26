@@ -13,6 +13,14 @@ from typing import Optional, List
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .analysis_agent import AnalysisRequest
+    from .fetch_market import MarketData
+    from .scrape_context import MarketContext
+    from .signals_client import SignalRecord
+
 
 try:  # pragma: no cover - optional dependency
     from sentient_agent_framework import AbstractAgent, Query, ResponseHandler, Session
@@ -94,7 +102,13 @@ class PolyseekSentientAgent(AbstractAgent):
         super().__init__(name="Polyseek Sentient Agent")
         self.settings = settings or load_settings()
 
-    async def assist(self, session: Session, query: Query, response_handler: ResponseHandler):
+    async def assist(self, session, query, response_handler):
+        # Lazy import to prevent startup crashes
+        from .analysis_agent import AnalysisRequest, run_analysis
+        from .fetch_market import fetch_market_data
+        from .scrape_context import fetch_market_context
+        from .signals_client import fetch_signals
+
         payload = _parse_prompt(query.prompt)
         await response_handler.emit_text_block("RECEIVED", f"Analyzing {payload.market_url}")
 

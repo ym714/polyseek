@@ -4,17 +4,14 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from typing import Dict, List, Optional
-
-try:
-    from litellm import acompletion
-except ImportError:  # pragma: no cover
-    acompletion = None  # type: ignore
+from typing import TYPE_CHECKING, Dict, List, Optional
 
 from .config import Settings, load_settings
-from .fetch_market import MarketData
-from .scrape_context import MarketContext
-from .signals_client import SignalRecord
+
+if TYPE_CHECKING:
+    from .fetch_market import MarketData
+    from .scrape_context import MarketContext
+    from .signals_client import SignalRecord
 
 
 @dataclass
@@ -35,6 +32,12 @@ async def run_analysis(
     For 'quick' mode: Single-pass analysis.
     For 'deep' mode: Planner → Critic → Follow-up → Final (4-step analysis).
     """
+    # Lazy import litellm
+    try:
+        from litellm import acompletion
+    except ImportError:
+        acompletion = None
+
     settings = settings or load_settings()
     if settings.app.offline_mode or acompletion is None or not settings.llm.api_key:
         return _offline_analysis(request)
@@ -80,6 +83,8 @@ async def _run_quick_analysis(
         completion_params["response_format"] = {"type": "json_object"}
     
     try:
+        # Lazy import litellm
+        from litellm import acompletion
         response = await acompletion(**completion_params)
         content = response["choices"][0]["message"]["content"]
     except Exception as e:
@@ -166,6 +171,8 @@ async def _run_deep_analysis(
     if not is_gemini:
         planner_params["response_format"] = {"type": "json_object"}
     
+    # Lazy import litellm
+    from litellm import acompletion
     planner_response = await acompletion(**planner_params)
     plan_content = planner_response["choices"][0]["message"]["content"]
     plan = _parse_response_json(plan_content)
@@ -189,6 +196,8 @@ async def _run_deep_analysis(
     if not is_gemini:
         critic_params["response_format"] = {"type": "json_object"}
     
+    # Lazy import litellm
+    from litellm import acompletion
     critic_response = await acompletion(**critic_params)
     critique_content = critic_response["choices"][0]["message"]["content"]
     critique = _parse_response_json(critique_content)
@@ -225,6 +234,8 @@ async def _run_deep_analysis(
     if not is_gemini:
         final_params["response_format"] = {"type": "json_object"}
     
+    # Lazy import litellm
+    from litellm import acompletion
     final_response = await acompletion(**final_params)
     final_content = final_response["choices"][0]["message"]["content"]
     result = _parse_response_json(final_content)
