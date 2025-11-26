@@ -40,10 +40,23 @@ async def fetch_market_context(
     if settings.app.offline_mode:
         return _offline_context()
     html = await _download_html(url, settings, client)
+    
+    # Run CPU-bound parsing in a thread pool to avoid blocking the event loop
+    loop = asyncio.get_running_loop()
+    rules, comments = await loop.run_in_executor(
+        None, 
+        lambda: _parse_html_content(html, settings.scrape)
+    )
+    
+    return MarketContext(resolution_rules=rules, comments=comments)
+
+
+def _parse_html_content(html: str, settings: ScrapeSettings) -> tuple[Optional[str], List[Comment]]:
+    """Helper for CPU-bound parsing."""
     soup = BeautifulSoup(html, "html.parser")
     rules = _extract_rules(soup)
-    comments = _extract_comments(soup, settings.scrape)
-    return MarketContext(resolution_rules=rules, comments=comments)
+    comments = _extract_comments(soup, settings)
+    return rules, comments
 
 
 async def _download_html(

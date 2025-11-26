@@ -11,3 +11,4 @@ uvicorn
 python-ulid>=2.2.0
 
 
+openai
