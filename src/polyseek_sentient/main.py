@@ -23,34 +23,43 @@ if TYPE_CHECKING:
 
 
 try:  # pragma: no cover - optional dependency
+    # Try standard import
     from sentient_agent_framework import AbstractAgent, Query, ResponseHandler, Session
-except ImportError:  # pragma: no cover
-    class AbstractAgent:  # type: ignore
-        async def assist(self, session, query, response_handler):
-            raise RuntimeError("Sentient Agent Framework not installed")
+except ImportError:
+    try:
+        # Try importing from src if standard import fails
+        from src.sentient_agent_framework import AbstractAgent, Query, ResponseHandler, Session
+    except ImportError:  # pragma: no cover
+        # Fallback dummy classes
+        class AbstractAgent:  # type: ignore
+            def __init__(self, name: str = ""):
+                self.name = name
 
-    class Session:  # type: ignore
-        ...
+            async def assist(self, session, query, response_handler):
+                raise RuntimeError("Sentient Agent Framework not installed")
 
-    class Query:  # type: ignore
-        def __init__(self, prompt: str):
-            self.prompt = prompt
+        class Session:  # type: ignore
+            ...
 
-    class ResponseHandler:  # type: ignore
-        async def emit_text_block(self, event_name: str, content: str):
-            print(f"[{event_name}] {content}")
+        class Query:  # type: ignore
+            def __init__(self, prompt: str):
+                self.prompt = prompt
 
-        async def emit_json(self, event_name: str, data: dict):
-            print(f"[{event_name}] {json.dumps(data, indent=2, ensure_ascii=False)}")
+        class ResponseHandler:  # type: ignore
+            async def emit_text_block(self, event_name: str, content: str):
+                print(f"[{event_name}] {content}")
 
-        def create_text_stream(self, event_name: str):
-            return self
+            async def emit_json(self, event_name: str, data: dict):
+                print(f"[{event_name}] {json.dumps(data, indent=2, ensure_ascii=False)}")
 
-        async def emit_chunk(self, chunk: str):
-            print(chunk)
+            def create_text_stream(self, event_name: str):
+                return self
 
-        async def complete(self):
-            print("[COMPLETE]")
+            async def emit_chunk(self, chunk: str):
+                print(chunk)
+
+            async def complete(self):
+                print("[COMPLETE]")
 
 
 class CLIResponseHandler:
