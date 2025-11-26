@@ -10,10 +10,17 @@ import uuid
 from dataclasses import dataclass
 from typing import Optional, List
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import TYPE_CHECKING
+import logging
+import ulid
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from .analysis_agent import AnalysisRequest
@@ -344,116 +351,113 @@ async def analyze_market(request: AnalyzeRequest):
 
 
 
+
+# SSE Response Handler
 # ==========================================
-# MCP/SSE Server Support
-# ==========================================
 
-from fastapi.responses import StreamingResponse
-from typing import AsyncGenerator
+class SSEResponseHandler(ResponseHandler):
+    def __init__(self, queue: asyncio.Queue):
+        self.queue = queue
 
-# Create agent instance for MCP server
-_agent = PolyseekSentientAgent()
-
-class SSEResponseHandler:
-    """Response handler that generates SSE events."""
-    
-    def __init__(self):
-        self.events = []
-    
     async def emit_text_block(self, event_name: str, content: str):
-        # Use standard 'message' event for compatibility
-        data = {"type": event_name, "content": content}
-        event = f"event: message\ndata: {json.dumps(data)}\n\n"
-        self.events.append(event)
-    
+        data = json.dumps({"type": event_name, "content": content})
+        await self.queue.put(f"event: message\ndata: {data}\n\n")
+
     async def emit_json(self, event_name: str, data: dict):
-        # Use standard 'message' event for compatibility
-        payload = {"type": event_name, "data": data}
-        event = f"event: message\ndata: {json.dumps(payload)}\n\n"
-        self.events.append(event)
-    
+        payload = json.dumps({"type": event_name, "data": data})
+        await self.queue.put(f"event: message\ndata: {payload}\n\n")
+
     def create_text_stream(self, event_name: str):
-        return SSEStream(event_name, self.events)
-    
+        return SSEStream(event_name, self.queue)
+
+    async def emit_chunk(self, chunk: str):
+        # Fallback for direct chunk emission if needed
+        pass
+
     async def complete(self):
-        data = {"type": "done", "status": "complete"}
-        event = f"event: message\ndata: {json.dumps(data)}\n\n"
-        self.events.append(event)
+        await self.queue.put(None)  # Signal end of stream
+
 
 class SSEStream:
-    def __init__(self, name: str, events_list: list):
+    def __init__(self, name: str, queue: asyncio.Queue):
         self.name = name
-        self.events_list = events_list
-    
+        self.queue = queue
+
     async def emit_chunk(self, chunk: str):
-        data = {"type": self.name, "chunk": chunk}
-        event = f"event: message\ndata: {json.dumps(data)}\n\n"
-        self.events_list.append(event)
-    
+        data = json.dumps({"type": self.name, "chunk": chunk})
+        await self.queue.put(f"event: message\ndata: {data}\n\n")
+
     async def complete(self):
-        data = {"type": f"{self.name}_complete", "status": "complete"}
-        event = f"event: message\ndata: {json.dumps(data)}\n\n"
-        self.events_list.append(event)
+        # Stream completion is handled by the parent handler's complete
+        pass
 
-@app.get("/assist")
+
+class AssistRequest(BaseModel):
+    prompt: str
+    stream: bool = True
+
+
 @app.post("/assist")
-async def assist_endpoint(request: dict = None, query: str = None):
-    """MCP/SSE endpoint for Questflow compatibility."""
+async def assist_endpoint(request: AssistRequest):
+    """
+    MCP-compatible assist endpoint that streams responses via SSE.
+    """
+    settings = load_settings()
+    agent = PolyseekSentientAgent(settings)
     
-    # Lazy import to prevent startup crashes
-    from .analysis_agent import AnalysisRequest, run_analysis
-    from .fetch_market import fetch_market_data
-    from .scrape_context import fetch_market_context
-    from .signals_client import gather_signals as fetch_signals
-
-    # Handle GET request (query param) or POST request (json body)
-    query_text = ""
-    if query:
-        query_text = query
-    elif request:
-        query_text = request.get("query", "")
+    # Create a queue to bridge the agent's callbacks to the SSE stream
+    queue = asyncio.Queue()
+    handler = SSEResponseHandler(queue)
     
-    # If no query provided (e.g. initial connection), send a welcome event
-    if not query_text:
-        handler = SSEResponseHandler()
-        async def welcome_generator():
-            # Use standard 'message' event for compatibility
-            # Some clients expect 'data' only, or 'event: message'
-            yield f"event: message\ndata: {json.dumps({'content': 'Polyseek Agent Ready. Please send a query.'})}\n\n"
-        return StreamingResponse(welcome_generator(), media_type="text/event-stream")
+    # Create session and query objects
+    class SimpleSession:
+        def __init__(self):
+            self.id = str(ulid.ULID())
 
-    async def event_generator() -> AsyncGenerator[str, None]:
-        # Create SSE response handler
-        handler = SSEResponseHandler()
+    session = SimpleSession()
+    
+    # Query seems to be a Pydantic model requiring 'id'.
+    # We need to handle the case where Query might be the fallback class or the real one
+    # The fallback class in this file takes 'prompt' in __init__
+    # The real Query class likely takes 'prompt' and 'id'
+    
+    try:
+        # Try to instantiate with id first (for real framework)
+        query = Query(id=str(ulid.ULID()), prompt=request.prompt)
+    except TypeError:
+        # Fallback for dummy class or if signature differs
+        query = Query(prompt=request.prompt)
+        if hasattr(query, 'id'):
+            query.id = str(ulid.ULID())
+    
+    async def event_generator():
+        # Start the agent in a background task
+        task = asyncio.create_task(agent.assist(session, query, handler))
         
-        # Create session and query from request
-        class SimpleSession:
-            def __init__(self, session_id: str):
-                self.id = session_id
-        
-        class SimpleQuery:
-            def __init__(self, prompt: str):
-                self.prompt = prompt
-        
-        session_id = request.get("session_id", "default-session")
-        query_data = request.get("query", {})
-        prompt = query_data.get("prompt", json.dumps(request))
-        
-        session = SimpleSession(session_id)
-        query = SimpleQuery(prompt)
-        
-        # Run the agent
         try:
-            await _agent.assist(session, query, handler)
+            while True:
+                # Wait for the next event from the queue
+                data = await queue.get()
+                
+                if data is None:
+                    break
+                    
+                yield data
+                
+        except asyncio.CancelledError:
+            logger.info("Client disconnected")
+            task.cancel()
+            raise
         except Exception as e:
-            error_event = f"event: error\ndata: {json.dumps({'error': str(e)})}\n\n"
-            yield error_event
-            return
-        
-        # Yield all collected events
-        for event in handler.events:
-            yield event
-    
+            logger.error(f"Error in event generator: {e}")
+            yield f"event: error\ndata: {json.dumps({'error': str(e)})}\n\n"
+        finally:
+            # Ensure the agent task is finished
+            try:
+                await task
+            except Exception as e:
+                logger.error(f"Agent task error: {e}")
+
     return StreamingResponse(
         event_generator(),
         media_type="text/event-stream",
@@ -464,6 +468,30 @@ async def assist_endpoint(request: dict = None, query: str = None):
         }
     )
 
+
+@app.get("/assist")
+async def assist_check():
+    """
+    GET endpoint for SSE connection verification.
+    """
+    async def event_generator():
+        yield "event: connected\ndata: {}\n\n"
+        try:
+            while True:
+                await asyncio.sleep(15)
+                yield "event: ping\ndata: {}\n\n"
+        except asyncio.CancelledError:
+            pass
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        }
+    )
 
 if __name__ == "__main__":
     main()
