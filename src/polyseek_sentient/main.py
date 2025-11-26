@@ -397,7 +397,7 @@ async def assist_endpoint(request: dict = None, query: str = None):
     from .analysis_agent import AnalysisRequest, run_analysis
     from .fetch_market import fetch_market_data
     from .scrape_context import fetch_market_context
-    from .signals_client import fetch_signals
+    from .signals_client import gather_signals as fetch_signals
 
     # Handle GET request (query param) or POST request (json body)
     query_text = ""
